@@ -15,8 +15,14 @@ if (!process.env.SESSION_SECRET || !process.env.JWT_SECRET) {
     process.exit(1);
 }
 
-// Middleware
-app.use(cors());
+// 📌 Configuración de CORS para permitir solicitudes desde el frontend en Vercel
+const corsOptions = {
+    origin: ["https://frontend-sm-01.vercel.app", "http://localhost:5173"],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(
     session({
@@ -110,6 +116,9 @@ app.get("/users", authenticateToken, async (req, res) => {
 
 app.delete("/users/:id", authenticateToken, async (req, res) => {
     try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+
         await User.findByIdAndDelete(req.params.id);
         res.status(200).json({ success: "Usuario eliminado correctamente." });
     } catch (error) {
@@ -145,6 +154,9 @@ app.post("/messages", async (req, res) => {
 
 app.delete("/messages/:id", authenticateToken, async (req, res) => {
     try {
+        const message = await Message.findById(req.params.id);
+        if (!message) return res.status(404).json({ error: "Mensaje no encontrado." });
+
         await Message.findByIdAndDelete(req.params.id);
         res.status(200).json({ success: "Mensaje eliminado correctamente." });
     } catch (error) {
