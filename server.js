@@ -185,3 +185,70 @@ app.put("/settings", authenticateToken, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
+
+// 📌 Modelo de Proyectos
+const ProjectSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    image: { type: String, required: true },
+    link: { type: String, required: true },
+    details: { type: String, required: true },
+    technologies: { type: [String], required: true },
+    date: { type: Date, default: Date.now }
+});
+
+const Project = mongoose.model("Project", ProjectSchema);
+
+// 📌 Rutas para gestionar proyectos
+
+// Obtener todos los proyectos
+app.get("/projects", async (req, res) => {
+    try {
+        const projects = await Project.find().sort({ date: -1 });
+        res.status(200).json(projects);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener los proyectos." });
+    }
+});
+
+// Crear un nuevo proyecto
+app.post("/projects", authenticateToken, async (req, res) => {
+    const { title, description, image, link, details, technologies } = req.body;
+
+    if (!title || !description || !image || !link || !details || !technologies) {
+        return res.status(400).json({ error: "Todos los campos son obligatorios." });
+    }
+
+    try {
+        const newProject = new Project({ title, description, image, link, details, technologies });
+        await newProject.save();
+        res.status(201).json({ success: "Proyecto creado correctamente." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al crear el proyecto." });
+    }
+});
+
+// Editar un proyecto
+app.put("/projects/:id", authenticateToken, async (req, res) => {
+    try {
+        const updatedProject = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedProject) return res.status(404).json({ error: "Proyecto no encontrado." });
+
+        res.status(200).json({ success: "Proyecto actualizado correctamente." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar el proyecto." });
+    }
+});
+
+// Eliminar un proyecto
+app.delete("/projects/:id", authenticateToken, async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ error: "Proyecto no encontrado." });
+
+        await Project.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: "Proyecto eliminado correctamente." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar el proyecto." });
+    }
+});
