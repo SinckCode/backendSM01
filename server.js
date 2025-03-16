@@ -252,3 +252,48 @@ app.delete("/projects/:id", authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Error al eliminar el proyecto." });
     }
 });
+
+
+// 📌 Modelo para el Carrusel
+const CarouselSchema = new mongoose.Schema({
+    imageUrl: { type: String, required: true },
+    title: { type: String, required: false },
+    link: { type: String, required: false }
+});
+
+const Carousel = mongoose.model("Carousel", CarouselSchema);
+
+// 📌 Rutas para el Carrusel
+app.get("/carousel", async (req, res) => {
+    try {
+        const images = await Carousel.find();
+        res.status(200).json(images);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener imágenes del carrusel." });
+    }
+});
+
+app.post("/carousel", async (req, res) => {
+    const { imageUrl, title, link } = req.body;
+
+    if (!imageUrl) {
+        return res.status(400).json({ error: "La URL de la imagen es obligatoria." });
+    }
+
+    try {
+        const newImage = new Carousel({ imageUrl, title, link });
+        await newImage.save();
+        res.status(201).json({ success: "Imagen añadida al carrusel." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al añadir la imagen." });
+    }
+});
+
+app.delete("/carousel/:id", async (req, res) => {
+    try {
+        await Carousel.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: "Imagen eliminada correctamente." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar la imagen." });
+    }
+});
