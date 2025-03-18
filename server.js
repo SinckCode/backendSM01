@@ -190,14 +190,16 @@ app.listen(PORT, () => {
 const ProjectSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
-    image: { type: String, required: true },
-    link: { type: String, required: true },
-    details: { type: String, required: true },
-    technologies: { type: [String], required: true },
+    images: { type: [String], required: true },  // ✅ Ahora acepta múltiples imágenes
+    link: { type: String, required: false },
+    details: { type: String, required: false },
+    technologies: { type: [String], required: false },
+    showButton: { type: Boolean, default: true }, // ✅ Ahora el botón es opcional
     date: { type: Date, default: Date.now }
 });
 
 const Project = mongoose.model("Project", ProjectSchema);
+
 
 // 📌 Rutas para gestionar proyectos
 
@@ -213,28 +215,50 @@ app.get("/projects", async (req, res) => {
 
 // Crear un nuevo proyecto
 app.post("/projects", authenticateToken, async (req, res) => {
-    const { title, description, image, link, details, technologies } = req.body;
+    console.log("📌 Datos recibidos en /projects:", req.body); // <-- 👀 DEBUG
 
-    if (!title || !description || !image || !link || !details || !technologies) {
+    let { title, description, images, link, details, technologies, showButton } = req.body;
+
+    // 📌 Asegurar que images es un array y showButton es booleano
+    images = Array.isArray(images) ? images : [];
+    showButton = typeof showButton === "boolean" ? showButton : true;
+
+    // 📌 Convertir technologies en array si es string
+    technologies = typeof technologies === "string" ? technologies.split(",").map((tech) => tech.trim()) : technologies;
+
+    // 📌 Validación corregida
+    if (!title || !description || !link || !details || !technologies.length) {
+        console.error("❌ Error: Algún campo está vacío.");
         return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
     try {
-        const newProject = new Project({ title, description, image, link, details, technologies });
+        const newProject = new Project({ title, description, images, link, details, technologies, showButton });
         await newProject.save();
-        res.status(201).json({ success: "Proyecto creado correctamente." });
+        res.status(201).json({ success: "✅ Proyecto creado correctamente." });
     } catch (error) {
-        res.status(500).json({ error: "Error al crear el proyecto." });
+        console.error("❌ Error al crear el proyecto:", error);
+        res.status(500).json({ error: "Error interno del servidor." });
     }
 });
 
+
+
 // Editar un proyecto
 app.put("/projects/:id", authenticateToken, async (req, res) => {
+    console.log("📌 Datos recibidos en /projects (actualizar):", req.body); // <-- DEBUG
+
+    let { images, showButton } = req.body;
+
+    // Asegurarnos de que images sea un array y showButton sea booleano
+    images = Array.isArray(images) ? images : [];
+    showButton = typeof showButton === "boolean" ? showButton : true;
+
     try {
         const updatedProject = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedProject) return res.status(404).json({ error: "Proyecto no encontrado." });
 
-        res.status(200).json({ success: "Proyecto actualizado correctamente." });
+        res.status(200).json({ success: "✅ Proyecto actualizado correctamente." });
     } catch (error) {
         res.status(500).json({ error: "Error al actualizar el proyecto." });
     }
